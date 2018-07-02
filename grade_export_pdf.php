@@ -18,11 +18,16 @@
 require_once($CFG->dirroot.'/grade/export/lib.php');
 require_once($CFG->libdir . '/csvlib.class.php');
 
+
 class grade_export_pdf extends grade_export {
 
     public $plugin = 'ncmgradeapproval';
+    public $updatedgradesonly = false; // default to export ALL grades
 
-    public $separator; // default separator
+    private $finalgrades = array();
+    private $finalgradescounter = 0;
+    private $passrates = array();
+    private $uniidfieldname = 'ncmuniid';
 
     /**
      * Constructor should set up all the private variables ready to be pulled
@@ -44,7 +49,7 @@ class grade_export_pdf extends grade_export {
         return $params;
     }
 
-    public function print_grades() {
+    public function print_grades_back() {
         global $CFG;
 
         $export_tracking = $this->track_exports();
@@ -120,6 +125,537 @@ class grade_export_pdf extends grade_export {
         $geub->close();
         $csvexport->download_file();
         exit;
+    }
+
+    /**
+     * To be implemented by child classes
+     * @param boolean $feedback
+     * @param boolean $publish Whether to output directly, or send as a file
+     * @return string
+     */
+    public function print_grades($feedback = false) {
+        global $CFG, $SITE, $DB;
+        require_once($CFG->libdir.'/filelib.php');
+
+        // Import the Moodle PDF lib
+        require_once($CFG->libdir.'/pdflib.php');
+
+        $export_tracking = $this->track_exports();
+
+        $strgrades = get_string('grades');
+
+        /// Calculate file name
+        $shortname = format_string($this->course->shortname, true, array('context' => context_course::instance($this->course->id)));
+        $downloadfilename = clean_filename("$shortname $strgrades.pdf");
+
+        make_temp_directory('gradeexport');
+        $tempfilename = $CFG->tempdir .'/gradeexport/'. md5(sesskey().microtime().$downloadfilename);
+        if (!$handle = fopen($tempfilename, 'w+b')) {
+            print_error('cannotcreatetempdir');
+        }
+
+        /// time stamp to ensure uniqueness of batch export
+        //fwrite($handle,  '<results batch="xml_export_'.time().'">'."\n");
+
+        // CHANGES START
+
+        $mypdf = new pdf();
+        //$mypdf->setPrintHeader(false);
+        //$mypdf->setPrintFooter(false);
+
+        $mypdf->SetFont('helvetica', '', 10);
+        $mypdf->SetFontSize('10');
+
+        $createdat = date("d-m-Y H:i");
+
+        $mypdf->SetHeaderData(PDF_HEADER_LOGO, PDF_HEADER_LOGO_WIDTH, 'Grade Approval Report', 'Created at '.$createdat, array(0,64,255), array(0,64,128));
+        $mypdf->setFooterData(array(0,64,0), array(0,64,128));
+
+        $mypdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
+        $mypdf->setFooterFont(Array(PDF_FONT_NAME_DATA, '', PDF_FONT_SIZE_DATA));
+
+        // set margins
+        $mypdf->SetMargins(PDF_MARGIN_LEFT, PDF_MARGIN_TOP, PDF_MARGIN_RIGHT);
+        $mypdf->SetHeaderMargin(PDF_MARGIN_HEADER);
+        $mypdf->SetFooterMargin(PDF_MARGIN_FOOTER);
+
+
+        $mypdf->AddPage('L', 'A4');
+
+        //$mypdf->writeHTML($this->getCSS(), true, false, true, false, '');
+        $mypdf->writeHTML($this->get_html_header(), true, false, true, false, '');
+        $mypdf->writeHTML($this->get_html_title($SITE->shortname, $this->course), true, false, true, false, '');
+
+        // Grade Table
+        $gradetable = array(
+            'thead' => array('College ID', 'UNI ID', 'Student Name', 'Class'),
+            'tbody' => [],
+        );
+
+        // set default header data
+
+        // set header and footer fonts
+
+        // Build Table Header
+        $theader = array(
+            'studentid'
+        );
+        // Get the number of assignement => determine the number of columns in the table
+        // List of Assignements
+        $listgrades = array();
+
+        // List of Groups in the course
+        $coursegroups = array();
+
+        $export_buffer = array();
+
+        $geub = new grade_export_update_buffer();
+        $gui = new graded_users_iterator($this->course, $this->columns, $this->groupid);
+        $gui->require_active_enrolment($this->onlyactive);
+        $gui->init();
+
+        $this->displaytype = array(GRADE_DISPLAY_TYPE_LETTER, GRADE_DISPLAY_TYPE_REAL);
+
+        $studentcount = 0;
+        $gradeletters = array();
+
+        while ($userdata = $gui->next_user()) {
+
+            $studentcount++;
+            $row = array();
+
+            $myhtml = "";
+            $user = $userdata->user;
+
+            $userobj = $DB->get_record('user', array('id' => $user->id));
+            profile_load_custom_fields($userobj);
+
+            $usergroupsres = groups_get_user_groups($this->course->id, $user->id);
+            $usergroups = $usergroupsres['0'];
+
+            $groupname = "";
+            foreach ($usergroups as $usergroup) {
+
+                if (!array_key_exists($usergroup, $coursegroups)) {
+                    // Get the group name.
+                    $groupname = groups_get_group_name($usergroup);
+                    $coursegroups[$usergroup] = $groupname;
+                }
+                else {
+                    $groupname = $coursegroups[$usergroup];
+                }
+            }
+
+            $myuser = array(
+                'studentid' => $user->id,
+                'studentname' => $user->firstname . ' ' . $user->lastname,
+                'class' => $groupname,
+                'uniid' => 'NCMUNIID'
+                //'uniid' => $userobj->profile[$this->uniidfieldname],
+            );
+
+            $mygrades = array();
+            foreach ($userdata->grades as $itemid => $grade) {
+
+                $mygrade = array();
+                $mygrade['itemid'] = $itemid;
+
+                $grade_item = $this->grade_items[$itemid];
+                $grade->grade_item =& $grade_item;
+
+
+                $listgrades[$itemid] = array(
+                		'itemid' => $itemid,
+                		'itemname' => ($grade_item->itemtype == 'course') ? 'Total' : $grade_item->itemname,
+                		'itemtype' => $grade_item->itemtype,
+                		'grademax' => $grade_item->grademax,
+                    'gradepass' => $grade_item->gradepass,
+                		'multfactor' => $grade_item->multfactor,
+                		'weight' => $grade_item->grademax * $grade_item->multfactor,
+                		'order' => ($grade_item->itemtype == 'course') ? 9 : 1,
+                );
+
+                // MDL-11669, skip exported grades or bad grades (if setting says so)
+                if ($export_tracking) {
+                    $status = $geub->track($grade);
+                    if ($this->updatedgradesonly && ($status == 'nochange' || $status == 'unknown')) {
+                        continue;
+                    }
+                }
+
+                if ($export_tracking) {
+                    $myhtml .= "<p>State: {$status}</p>";
+                }
+
+                // only need id number
+                //fwrite($handle,  "\t\t<assignment>{$grade_item->idnumber}</assignment>\n");
+                //$mygrade['itemnumber'] = $grade_item->idnumber;
+
+                // this column should be customizable to use either student id, idnumber, uesrname or email.
+                //fwrite($handle,  "\t\t<student>{$user->idnumber}</student>\n");
+                $myhtml .= "<p>Student: {$user->idnumber}</p>";
+                // Format and display the grade in the selected display type (real, letter, percentage).
+
+
+                if (is_array($this->displaytype)) {
+                    // Grades display type came from the return of export_bulk_export_data() on grade publishing.
+                    foreach ($this->displaytype as $gradedisplayconst) {
+                        $gradestr = $this->format_grade($grade, $gradedisplayconst);
+                        //fwrite($handle,  "\t\t<score>$gradestr</score>\n");
+                        if($gradedisplayconst == GRADE_DISPLAY_TYPE_LETTER) {
+                            $mygrade['score'][GRADE_DISPLAY_TYPE_LETTER] = $gradestr;
+                        }
+                        if($gradedisplayconst == GRADE_DISPLAY_TYPE_REAL) {
+                            $mygrade['score'][GRADE_DISPLAY_TYPE_REAL] = $gradestr;
+                        }
+                    }
+                } else {
+                    // Grade display type submitted directly from the grade export form.
+                    $gradestr = $this->format_grade($grade, $this->displaytype);
+                    $mygrade['score'][GRADE_DISPLAY_TYPE_REAL] = $gradestr;
+
+                    $gradeletterstr = $this->format_grade($grade, GRADE_DISPLAY_TYPE_LETTER);
+                    $mygrade['score'][GRADE_DISPLAY_TYPE_LETTER] = $gradeletterstr;
+                }
+				// Feedback is not required.
+                if ($this->export_feedback && 1 == 2) {
+                    $feedbackstr = $this->format_feedback($userdata->feedbacks[$itemid]);
+                }
+                $myhtml .= "</div><hr>";
+                $mygrade['finalgrade'] = $grade->finalgrade;
+                $mygrade['rawgrademax'] = $grade->rawgrademax;
+                $mygrades[$itemid] = $mygrade;
+			}
+
+            $gradetable['tbody'][] = array(
+                'user' => $myuser,
+                'grades' => $mygrades
+            );
+        }
+        // Reorder list of grades.
+        // The Grade for the course must be in last position
+        // Itemtype / Itemid
+        usort ($listgrades, function ($a, $b) {
+        	if ($a['order'] == $b['order'] && $a['itemid'] == $b['itemid']) {
+        		return 0;
+        	}
+        	if ($a['order'] == $b['order']) {
+        		if ($a['itemid'] > $b['itemid']) {
+        			return 1;
+        		} else {
+        			return -1;
+        		}
+        	}
+        	if ($a['order'] > $b['order']) {
+        		return 1;
+        	} else {
+        		return 0;
+        	}
+        });
+
+
+        $gradetable['listgrades'] = $listgrades;
+        $gradetablehtml = $this->get_html_grade_table($gradetable);
+
+        // Write Grade Tables.
+        $mypdf->writeHTML($gradetablehtml, true, false, true, false, '');
+
+        // Number of Students.
+        $myhtml =  "<p>Number of Students: {$studentcount}</p>";
+        $mypdf->writeHTML($myhtml, true, false, true, false, '');
+
+        // Passrate.
+        $passrate = $this->get_html_passrate();
+        $mypdf->writeHTML($passrate, true, false, true, false, '');
+
+        // Grade distribution.
+        $gradedistribution = $this->get_html_grade_summary();
+        $mypdf->writeHTML($gradedistribution, true, false, true, false, '');
+
+        $signature = $this->get_html_signature();
+        $mypdf->writeHTML($signature, true, false, true, false, '');
+
+
+
+
+
+        /// CHANGES END
+        // $export_buffer = array();
+
+        // $geub = new grade_export_update_buffer();
+        // $gui = new graded_users_iterator($this->course, $this->columns, $this->groupid);
+        // $gui->require_active_enrolment($this->onlyactive);
+        // $gui->init();
+        // while ($userdata = $gui->next_user()) {
+        //     $user = $userdata->user;
+
+        //     if (empty($user->idnumber)) {
+        //         //id number must exist otherwise we cant match up students when importing
+        //         continue;
+        //     }
+
+        //     // studentgrades[] index should match with corresponding $index
+        //     foreach ($userdata->grades as $itemid => $grade) {
+        //         $grade_item = $this->grade_items[$itemid];
+        //         $grade->grade_item =& $grade_item;
+
+        //         // MDL-11669, skip exported grades or bad grades (if setting says so)
+        //         if ($export_tracking) {
+        //             $status = $geub->track($grade);
+        //             if ($this->updatedgradesonly && ($status == 'nochange' || $status == 'unknown')) {
+        //                 continue;
+        //             }
+        //         }
+
+        //         fwrite($handle,  "\t<result>\n");
+
+        //         if ($export_tracking) {
+        //             fwrite($handle,  "\t\t<state>$status</state>\n");
+        //         }
+
+        //         // only need id number
+        //         fwrite($handle,  "\t\t<assignment>{$grade_item->idnumber}</assignment>\n");
+        //         // this column should be customizable to use either student id, idnumber, uesrname or email.
+        //         fwrite($handle,  "\t\t<student>{$user->idnumber}</student>\n");
+        //         // Format and display the grade in the selected display type (real, letter, percentage).
+        //         if (is_array($this->displaytype)) {
+        //             // Grades display type came from the return of export_bulk_export_data() on grade publishing.
+        //             foreach ($this->displaytype as $gradedisplayconst) {
+        //                 $gradestr = $this->format_grade($grade, $gradedisplayconst);
+        //                 fwrite($handle,  "\t\t<score>$gradestr</score>\n");
+        //             }
+        //         } else {
+        //             // Grade display type submitted directly from the grade export form.
+        //             $gradestr = $this->format_grade($grade, $this->displaytype);
+        //             fwrite($handle,  "\t\t<score>$gradestr</score>\n");
+        //         }
+
+        //         if ($this->export_feedback) {
+        //             $feedbackstr = $this->format_feedback($userdata->feedbacks[$itemid]);
+        //             fwrite($handle,  "\t\t<feedback>$feedbackstr</feedback>\n");
+        //         }
+        //         fwrite($handle,  "\t</result>\n");
+        //     }
+        // }
+        // fwrite($handle,  "</results>");
+        // fclose($handle);
+        $gui->close();
+        $geub->close();
+
+        $mypdf->Output($downloadfilename, 'D');
+
+        if (defined('BEHAT_SITE_RUNNING')) {
+            // If behat is running, we cannot test the output if we force a file download.
+            include($tempfilename);
+        } else {
+            @header("Content-type: text/xml; charset=UTF-8");
+            send_temp_file($tempfilename, $downloadfilename, false);
+        }
+    }
+
+    private function getCSS() {
+        $css = <<<EOF
+        <style>
+            body{
+            	font-family:verdana;
+            	font-size:8px;
+            }
+            table#grade_report th {
+            	font-weight:bold;
+            	color:#ffffff;
+            	background-color:#007236;
+            	text-align:left;
+            }
+
+            td.gradeletter {
+            	font-weight:bold;
+            }
+
+            td.gradefail {
+            	color:red;
+            }
+
+            tr:even {
+            	background-color:#f4f4ff;
+            }
+
+            b.page_title{
+            	color:#011537;
+            	font-size:14px;
+            }
+        </style>
+EOF;
+        return $css;
+    }
+
+    private function get_html_header() {
+        $html = "<div style=\"text-align:center\"><h1>Grade Approval Report</h1></div>";
+        return $html;
+    }
+
+    private function get_html_title($college, $course) {
+
+        $html = "<div style=\"text-align:center\"><h2>{$college}<br/>{$course->shortname}: {$course->fullname}</h2></div>";
+        return $html;
+    }
+
+    private function get_html_grade_table_start() {
+        $html = "<table id=\"grade_report\" width=\"100%\" cellpadding='2' cellspacing='2' style='border:black 1px solid;'>";
+        return $html;
+    }
+
+    private function get_html_grade_table_end() {
+        $html = "</table>";
+        return $html;
+    }
+
+    private function get_html_grade_table($gradetable) {
+
+        // T-head.
+        $thead = $this->get_html_grade_table_header($gradetable['thead'], $gradetable['listgrades']);
+
+        // T-body.
+        $tbody = $this->get_html_grade_table_body($gradetable['tbody'], $gradetable['listgrades']);
+
+        $table = $this->get_html_grade_table_start()
+            . $thead
+            . $tbody
+            . $this->get_html_grade_table_end();
+        return $table;
+
+    }
+
+    private function get_html_grade_table_header($theader, $listgrades) {
+        $html = "<thead><tr>";
+        $i = 0 ;
+        // Add Student ID, UNI ID, Student Name
+        foreach ($theader as $column) {
+        	$html .= "<th><b>{$column}</b></th>";
+            $i++;
+        }
+        // Add columns, 1 column per grade item
+        foreach ($listgrades as $listgrade) {
+
+        	$text = $listgrade['itemname'];
+        	if ($listgrade['itemtype'] != 'course') {
+        		$text = $listgrade['itemname']
+        			//. "({$listgrade['itemid']})"
+        			. "<div style=\"font-size: small;\">Max:".floatval($listgrade['grademax'])."<br/>"
+        			. "Factor:".floatval($listgrade['multfactor'])."</div>";
+        	}
+
+        	$html .= "<th><b>{$text}</b></th>";
+            $i++;
+        }
+        $html .= "<th><b>Grd</b></th>";
+        $html .= "</tr></thead>";
+        return $html;
+    }
+    private function get_html_grade_table_body($tbody, $listgrades) {
+        $html = "<tbody>";
+        //echo "<pre>";
+        //var_dump($tbody);
+        //echo "</pre>";
+        $i = 0;
+        foreach ($tbody as $data) {
+            // User data
+            $i = 2;
+            $html .= "<tr>"
+                ."<td>{$data['user']['studentid']}</td>"
+                ."<td>{$data['user']['uniid']}</td>"
+                ."<td>{$data['user']['studentname']}</td>"
+                ."<td>{$data['user']['class']}</td>";
+            // Grade data
+            foreach ($listgrades as $listgrade) {
+                $i++;
+                $itemid = $listgrade['itemid'];
+                $html .= "<td>{$data['grades'][$itemid]['score'][GRADE_DISPLAY_TYPE_REAL]}</td>";
+
+                if ($listgrade['itemtype'] == 'course') {
+                	$html .= "<td>{$data['grades'][$itemid]['score'][GRADE_DISPLAY_TYPE_LETTER]}</td>";
+                	// Populate for Grade Distribution.
+                	$this->add_final_grade($data['grades'][$itemid]['score'][GRADE_DISPLAY_TYPE_LETTER]);
+                	// Populate for Passrate.
+                	$this->add_passrate($data['user']['studentid'], $data['grades'][$itemid], $listgrade);
+
+                }
+
+            }
+            //
+            $html .= "</tr>";
+        }
+        //echo "<pre>USER=".$i."</pre>";
+        $html .= "</tbody>";
+        return $html;
+    }
+
+    private function get_html_passrate () {
+
+        $counterpass = 0;
+        $countertotal = 0;
+
+        foreach ($this->passrates as $passrate) {
+            if($passrate) {
+                $counterpass++;
+            }
+            $countertotal++;
+        }
+
+        $pourcentage = $counterpass * 100 / $countertotal;
+
+    	$html = "<div style=\"text-align:right\" width='100%'>";
+    	$html .= "Passrate = ".number_format($pourcentage, 1)."%";
+    	$html .= "</div>";
+    	return $html;
+    }
+
+
+    private function get_html_grade_summary () {
+        $html = "<div style=\"text-align:right\" width='100%'>";
+        $html .= "<span><b>Grade Distribution</b></span>";
+        foreach ($this->finalgrades as $grade => $count) {
+
+        	$pourcentage = $count * 100 / $this->finalgradescounter;
+
+        	$html .= "<br/><span><b>{$grade}:</b>&nbsp;{$count} (".number_format($pourcentage, 1)."%)</span>";
+        }
+        $html .= "</div>";
+        return $html;
+    }
+
+    private function get_html_signature() {
+        $html = "<table width='100%' border='1px' style='border: black solid 1px'>";
+        $html .= "<tr>";
+        $html .= "<td width='35%'>Printed by: _______________</td>";
+        $html .= "<td width='35%'>Signature: _______________</td>";
+        $html .= "<td width='30%'>Date: ".date('d/m/Y')."</td>";
+        $html .= "</tr>";
+        $html .= "</table>";
+        return $html;
+    }
+
+    private function add_final_grade($grade) {
+    	if (array_key_exists($grade, $this->finalgrades)) {
+    		$this->finalgrades[$grade] = $this->finalgrades[$grade] + 1;
+    	} else {
+    		$this->finalgrades[$grade] = 1;
+    	}
+    	$this->finalgradescounter = $this->finalgradescounter + 1;
+    }
+
+    private function add_passrate($studentid, $grade, $gradeitem) {
+
+        // Calculation to determine if the student pass or not.
+        $grademax = $gradeitem['grademax'];
+        $gradepass = $gradeitem['gradepass'];
+
+        $studentrawgrademax = $grade['rawgrademax'];
+        $studentfinalgrade = $grade['finalgrade'];
+
+        $newfinalgrade = $studentfinalgrade * $grademax / $studentrawgrademax;
+
+        $pass = ($newfinalgrade >= $gradepass) ? true : false;
+        $this->passrates[$studentid] = $pass;
     }
 }
 

@@ -17,6 +17,7 @@
 
 require_once '../../../config.php';
 require_once $CFG->dirroot.'/grade/export/lib.php';
+
 require_once 'grade_export_pdf.php';
 
 $id = required_param('id', PARAM_INT); // course id
@@ -33,7 +34,7 @@ $context = context_course::instance($id);
 require_capability('moodle/grade:export', $context);
 require_capability('gradeexport/ncmgradeapproval:view', $context);
 
-print_grade_page_head($COURSE->id, 'export', 'txt', get_string('exportto', 'grades') . ' ' . get_string('pluginname', 'gradeexport_txt'));
+print_grade_page_head($COURSE->id, 'export', 'ncmgradeapproval', get_string('exportto', 'grades') . ' ' . get_string('pluginname', 'gradeexport_ncmgradeapproval'));
 export_verify_grades($COURSE->id);
 
 if (!empty($CFG->gradepublishing)) {
@@ -60,6 +61,13 @@ if (($groupmode == SEPARATEGROUPS) &&
     echo $OUTPUT->footer();
     die;
 }
+
+$grade_item = $DB->get_record('grade_items', array('courseid' => $course->id, 'itemtype' => 'course'));
+// if ($grade_item->locked == 0 || $grade_item->locked == null || $grade_item->locked > time() ) {
+//     echo $OUTPUT->notification(get_string('gradebooknoexport', 'gradeexport_ncmgradeapproval'), 'notifyproblem');
+//     echo $OUTPUT->footer();
+//     die;
+// }
 
 groups_print_course_menu($course, 'index.php?id='.$id);
 echo '<div class="clearer"></div>';
