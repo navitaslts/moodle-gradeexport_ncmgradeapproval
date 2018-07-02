@@ -493,7 +493,7 @@ EOF;
     }
 
     private function get_html_grade_table_start() {
-        $html = "<table id=\"grade_report\" width=\"100%\" cellpadding='2' cellspacing='2' style='border:black 1px solid;'>";
+        $html = "<table id=\"grade_report\" width=\"100%\" cellpadding=\"4\" cellspacing=\"0\">";
         return $html;
     }
 
@@ -519,7 +519,7 @@ EOF;
     }
 
     private function get_html_grade_table_header($theader, $listgrades) {
-        $html = "<thead><tr>";
+        $html = "<thead><tr bgcolor=\"#ddeaff\">";
         $i = 0 ;
         // Add Student ID, UNI ID, Student Name
         foreach ($theader as $column) {
