@@ -82,7 +82,7 @@ class grade_export_pdf extends grade_export {
             }
         }
         // Last downloaded column header.
-        $exporttitle[] = get_string('timeexported', 'gradeexport_txt');
+        $exporttitle[] = get_string('timeexported', 'gradeexport_ncmgradeapproval');
         $csvexport->add_data($exporttitle);
 
         // Print all the lines of data.
@@ -154,11 +154,6 @@ class grade_export_pdf extends grade_export {
             print_error('cannotcreatetempdir');
         }
 
-        /// time stamp to ensure uniqueness of batch export
-        //fwrite($handle,  '<results batch="xml_export_'.time().'">'."\n");
-
-        // CHANGES START
-
         $mypdf = new pdf();
         //$mypdf->setPrintHeader(false);
         //$mypdf->setPrintFooter(false);
@@ -179,10 +174,12 @@ class grade_export_pdf extends grade_export {
         $mypdf->SetHeaderMargin(PDF_MARGIN_HEADER);
         $mypdf->SetFooterMargin(PDF_MARGIN_FOOTER);
 
+        $mypdf->SetFillColor(0,255,0);
+        $mypdf->SetAlpha(0.5);
 
         $mypdf->AddPage('L', 'A4');
 
-        //$mypdf->writeHTML($this->getCSS(), true, false, true, false, '');
+        $mypdf->writeHTML($this->get_css(), true, false, true, false, '');
         $mypdf->writeHTML($this->get_html_header(), true, false, true, false, '');
         $mypdf->writeHTML($this->get_html_title($SITE->shortname, $this->course), true, false, true, false, '');
 
@@ -250,8 +247,7 @@ class grade_export_pdf extends grade_export {
                 'studentid' => $user->id,
                 'studentname' => $user->firstname . ' ' . $user->lastname,
                 'class' => $groupname,
-                'uniid' => 'NCMUNIID'
-                //'uniid' => $userobj->profile[$this->uniidfieldname],
+                'uniid' => isset($userobj->profile[$this->uniidfieldname]) ? $userobj->profile[$this->uniidfieldname] : '' ,
             );
 
             $mygrades = array();
@@ -356,7 +352,7 @@ class grade_export_pdf extends grade_export {
 
         $gradetable['listgrades'] = $listgrades;
         $gradetablehtml = $this->get_html_grade_table($gradetable);
-
+        $mypdf->SetFillColor(255,255,255);
         // Write Grade Tables.
         $mypdf->writeHTML($gradetablehtml, true, false, true, false, '');
 
@@ -372,12 +368,9 @@ class grade_export_pdf extends grade_export {
         $gradedistribution = $this->get_html_grade_summary();
         $mypdf->writeHTML($gradedistribution, true, false, true, false, '');
 
+        // Signature
         $signature = $this->get_html_signature();
         $mypdf->writeHTML($signature, true, false, true, false, '');
-
-
-
-
 
         /// CHANGES END
         // $export_buffer = array();
@@ -453,7 +446,7 @@ class grade_export_pdf extends grade_export {
         }
     }
 
-    private function getCSS() {
+    private function get_css() {
         $css = <<<EOF
         <style>
             body{
@@ -553,21 +546,27 @@ EOF;
     }
     private function get_html_grade_table_body($tbody, $listgrades) {
         $html = "<tbody>";
+
         //echo "<pre>";
         //var_dump($tbody);
         //echo "</pre>";
         $i = 0;
         foreach ($tbody as $data) {
             // User data
-            $i = 2;
-            $html .= "<tr>"
+            //$i = 2;
+            $i++;
+            $color1 = "#F0F0F0";
+            $color2 = "#FFFFFF";
+            ($i%2 == 0) ? $color = $color2 : $color = $color1;
+
+            $html .= "<tr bgcolor=\"$color\">"
                 ."<td>{$data['user']['studentid']}</td>"
                 ."<td>{$data['user']['uniid']}</td>"
                 ."<td>{$data['user']['studentname']}</td>"
                 ."<td>{$data['user']['class']}</td>";
             // Grade data
             foreach ($listgrades as $listgrade) {
-                $i++;
+                //$i++;
                 $itemid = $listgrade['itemid'];
                 $html .= "<td>{$data['grades'][$itemid]['score'][GRADE_DISPLAY_TYPE_REAL]}</td>";
 
