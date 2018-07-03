@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -15,14 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-require_once '../../../config.php';
-require_once $CFG->dirroot.'/grade/export/lib.php';
-require_once 'grade_export_pdf.php';
+require_once('../../../config.php');
+require_once($CFG->dirroot.'/grade/export/lib.php');
+require_once('grade_export_pdf.php');
 
-$id                = required_param('id', PARAM_INT); // course id
-$PAGE->set_url('/grade/export/ncmgradeapproval/export.php', array('id'=>$id));
+$id = required_param('id', PARAM_INT); // Course id.
+$PAGE->set_url('/grade/export/ncmgradeapproval/export.php', array('id' => $id));
 
-if (!$course = $DB->get_record('course', array('id'=>$id))) {
+if (!$course = $DB->get_record('course', array('id' => $id))) {
     print_error('invalidcourseid');
 }
 
@@ -37,7 +36,11 @@ require_capability('gradeexport/ncmgradeapproval:view', $context);
 // If you use this method without this check, will break the direct grade exporting (without publishing).
 $key = optional_param('key', '', PARAM_RAW);
 if (!empty($CFG->gradepublishing) && !empty($key)) {
-    print_grade_page_head($COURSE->id, 'export', 'txt', get_string('exportto', 'grades') . ' ' . get_string('pluginname', 'gradeexport_txt'));
+    print_grade_page_head(
+        $COURSE->id,
+        'export',
+        'ncmgradeapproval',
+        get_string('exportto', 'grades') . ' ' . get_string('pluginname', 'gradeexport_ncmgradeapproval'));
 }
 
 if (groups_get_course_groupmode($COURSE) == SEPARATEGROUPS and !has_capability('moodle/site:accessallgroups', $context)) {
@@ -47,7 +50,7 @@ if (groups_get_course_groupmode($COURSE) == SEPARATEGROUPS and !has_capability('
 }
 
 $params = array(
-    'includeseparator'=>true,
+    'includeseparator' => true,
     'publishing' => true,
     'simpleui' => true,
     'multipledisplaytypes' => true
