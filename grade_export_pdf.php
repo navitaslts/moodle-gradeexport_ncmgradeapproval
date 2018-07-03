@@ -15,7 +15,6 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 require_once($CFG->dirroot.'/grade/export/lib.php');
-require_once($CFG->libdir . '/csvlib.class.php');
 
 class grade_export_pdf extends grade_export {
 
@@ -65,10 +64,6 @@ class grade_export_pdf extends grade_export {
         $strgrades = get_string('grades');
         $profilefields = grade_helper::get_user_profile_fields($this->course->id, $this->usercustomfields);
 
-        // echo "<pre>";
-        // var_dump($profilefields);
-        // echo "</pre>";
-
         // Calculate file name.
         $shortname = format_string($this->course->shortname, true, array('context' => context_course::instance($this->course->id)));
         $downloadfilename = clean_filename("$shortname $strgrades.pdf");
@@ -80,8 +75,6 @@ class grade_export_pdf extends grade_export {
         }
 
         $mypdf = new pdf();
-        //$mypdf->setPrintHeader(false);
-        //$mypdf->setPrintFooter(false);
 
         $mypdf->SetFont('helvetica', '', 10);
         $mypdf->SetFontSize('10');
@@ -153,13 +146,6 @@ class grade_export_pdf extends grade_export {
             $myhtml = "";
             $user = $userdata->user;
 
-            // foreach ($profilefields as $field) {
-            //     $fieldvalue = grade_helper::get_user_field_value($user, $field);
-            //     //$exportdata[] = $fieldvalue;
-            // }
-
-            //$userobj = $DB->get_record('user', array('id' => $user->id));
-            //profile_load_custom_fields($userobj);
             profile_load_custom_fields($user);
 
             $usergroupsres = groups_get_user_groups($this->course->id, $user->id);
@@ -311,48 +297,12 @@ class grade_export_pdf extends grade_export {
         }
     }
 
-    private function get_css() {
-        $css = <<<EOF
-        <style>
-            body{
-            	font-family:verdana;
-            	font-size:8px;
-            }
-            table#grade_report th {
-            	font-weight:bold;
-            	color:#ffffff;
-            	background-color:#007236;
-            	text-align:left;
-            }
-
-            td.gradeletter {
-            	font-weight:bold;
-            }
-
-            td.gradefail {
-            	color:red;
-            }
-
-            tr:even {
-            	background-color:#f4f4ff;
-            }
-
-            b.page_title{
-            	color:#011537;
-            	font-size:14px;
-            }
-        </style>
-EOF;
-        return $css;
-    }
-
     private function get_html_header() {
         $html = "<div style=\"text-align:center\"><h1>Grade Approval Report</h1></div>";
         return $html;
     }
 
     private function get_html_title($college, $course) {
-
         $html = "<div style=\"text-align:center\"><h2>{$college}<br/>{$course->shortname}: {$course->fullname}</h2></div>";
         return $html;
     }
@@ -368,7 +318,6 @@ EOF;
     }
 
     private function get_html_grade_table($gradetable) {
-
         // T-head.
         $thead = $this->get_html_grade_table_header($gradetable['thead'], $gradetable['listgrades']);
 
@@ -380,7 +329,6 @@ EOF;
             . $tbody
             . $this->get_html_grade_table_end();
         return $table;
-
     }
 
     private function get_html_grade_table_header($theader, $listgrades) {
@@ -397,7 +345,6 @@ EOF;
             $text = $listgrade['itemname'];
             if ($listgrade['itemtype'] != 'course') {
                 $text = $listgrade['itemname']
-                    //. "({$listgrade['itemid']})"
                     . "<div style=\"font-size: small;\">Max:".floatval($listgrade['grademax'])."<br/>"
                     . "Factor:".floatval($listgrade['multfactor'])."</div>";
             }
@@ -408,6 +355,7 @@ EOF;
         $html .= "</tr></thead>";
         return $html;
     }
+
     private function get_html_grade_table_body($tbody, $listgrades) {
         $html = "<tbody>";
 
@@ -444,7 +392,6 @@ EOF;
     }
 
     private function get_html_passrate() {
-
         $counterpass = 0;
         $countertotal = 0;
 
@@ -462,7 +409,6 @@ EOF;
         $html .= "</div>";
         return $html;
     }
-
 
     private function get_html_grade_summary () {
         $html = "<div style=\"text-align:right\" width='100%'>";
@@ -496,7 +442,6 @@ EOF;
     }
 
     private function add_passrate($studentid, $grade, $gradeitem) {
-
         // Calculation to determine if the student pass or not.
         $grademax = $gradeitem['grademax'];
         $gradepass = $gradeitem['gradepass'];
@@ -505,18 +450,6 @@ EOF;
         $studentfinalgrade = $grade['finalgrade'];
 
         $newfinalgrade = $studentfinalgrade * $grademax / $studentrawgrademax;
-
-        // echo "<pre>";
-        // var_dump($studentid);
-        // var_dump($studentfinalgrade);
-        // var_dump($grademax);
-        // var_dump($studentrawgrademax);
-        // var_dump($newfinalgrade);
-        // echo "</pre>";
-
-        // echo "<pre>Grade Pass";
-        // var_dump($gradepass);
-        // echo "</pre>";
 
         $pass = ($newfinalgrade >= $gradepass) ? true : false;
         $this->passrates[$studentid] = $pass;

@@ -65,12 +65,12 @@ if (($groupmode == SEPARATEGROUPS) &&
 }
 
 // Cannot export if the gradebook is not locked.
-$grade_item = $DB->get_record('grade_items', array('courseid' => $course->id, 'itemtype' => 'course'));
-// if ($grade_item->locked == 0 || $grade_item->locked == null || $grade_item->locked > time() ) {
-//     echo $OUTPUT->notification(get_string('gradebooknoexport', 'gradeexport_ncmgradeapproval'), 'notifyproblem');
-//     echo $OUTPUT->footer();
-//     die;
-// }
+$gradeitem = $DB->get_record('grade_items', array('courseid' => $course->id, 'itemtype' => 'course'));
+if ($gradeitem->locked == 0 || $gradeitem->locked == null || $gradeitem->locked > time() ) {
+    echo $OUTPUT->notification(get_string('gradebooknoexport', 'gradeexport_ncmgradeapproval'), 'notifyproblem');
+    echo $OUTPUT->footer();
+    die;
+}
 
 groups_print_course_menu($course, 'index.php?id='.$id);
 echo '<div class="clearer"></div>';
