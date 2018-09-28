@@ -103,7 +103,7 @@ class grade_export_pdf extends grade_export {
 
         $mypdf->AddPage('L', 'A4');
 
-        $mypdf->writeHTML($this->get_css(), true, false, true, false, '');
+        //$mypdf->writeHTML($this->get_css(), true, false, true, false, '');
         $mypdf->writeHTML($this->get_html_header(), true, false, true, false, '');
         $mypdf->writeHTML($this->get_html_title($SITE->shortname, $this->course), true, false, true, false, '');
 
