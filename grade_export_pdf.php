@@ -134,7 +134,7 @@ class grade_export_pdf extends grade_export {
         $gui->allow_user_custom_fields($this->usercustomfields);
         $gui->init();
 
-        $this->displaytype = array(GRADE_DISPLAY_TYPE_LETTER, GRADE_DISPLAY_TYPE_REAL);
+        $this->displaytype = array(GRADE_DISPLAY_TYPE_LETTER, GRADE_DISPLAY_TYPE_REAL, GRADE_DISPLAY_TYPE_PERCENTAGE);
 
         $studentcount = 0;
 
@@ -216,6 +216,9 @@ class grade_export_pdf extends grade_export {
                         if ($gradedisplayconst == GRADE_DISPLAY_TYPE_REAL) {
                             $mygrade['score'][GRADE_DISPLAY_TYPE_REAL] = $gradestr;
                         }
+                        if ($gradedisplayconst == GRADE_DISPLAY_TYPE_PERCENTAGE) {
+                            $mygrade['score'][GRADE_DISPLAY_TYPE_PERCENTAGE] = $gradestr;
+                        }
                     }
                 } else {
                     // Grade display type submitted directly from the grade export form.
@@ -224,6 +227,10 @@ class grade_export_pdf extends grade_export {
 
                     $gradeletterstr = $this->format_grade($grade, GRADE_DISPLAY_TYPE_LETTER);
                     $mygrade['score'][GRADE_DISPLAY_TYPE_LETTER] = $gradeletterstr;
+
+                    $gradeletterstr = $this->format_grade($grade, GRADE_DISPLAY_TYPE_PERCENTAGE);
+                    $mygrade['score'][GRADE_DISPLAY_TYPE_PERCENTAGE] = $gradestr;
+
                 }
                 // Feedback is not required.
                 if ($this->export_feedback && 1 == 2) {
@@ -351,7 +358,11 @@ class grade_export_pdf extends grade_export {
             $html .= "<th><b>{$text}</b></th>";
             $i++;
         }
+        // Grade letter column.
         $html .= "<th><b>Grd</b></th>";
+        // Percentage Grade column.
+        $html .= "<th><b>%</b></th>";
+        // Close table.
         $html .= "</tr></thead>";
         return $html;
     }
@@ -379,6 +390,7 @@ class grade_export_pdf extends grade_export {
 
                 if ($listgrade['itemtype'] == 'course') {
                     $html .= "<td>{$data['grades'][$itemid]['score'][GRADE_DISPLAY_TYPE_LETTER]}</td>";
+                    $html .= "<td>{$data['grades'][$itemid]['score'][GRADE_DISPLAY_TYPE_PERCENTAGE]}</td>";
                     // Populate for Grade Distribution.
                     $this->add_final_grade($data['grades'][$itemid]['score'][GRADE_DISPLAY_TYPE_LETTER]);
                     // Populate for Passrate.
