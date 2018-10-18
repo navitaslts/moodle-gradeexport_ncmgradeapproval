@@ -15,20 +15,22 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Events test.
+ * Grader Report PDF for Approval.
  *
- * @package    gradeexport_txt
- * @copyright  2016 Zane Karl zkarl@oid.ucla.edu
+ * @package    gradeexport_ncmgradeapproval
+ * @author     Nicolas Jourdain <nicolas.jourdain@navitas.com>
+ * @copyright  2018 Nicolas Jourdain <nicolas.jourdain@navitas.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Resource events test cases.
+ * Grader Report PDF for Approval.
  *
- * @package    gradeexport_txt
- * @copyright  2016 Zane Karl zkarl@oid.ucla.edu
+ * @package    gradeexport_ncmgradeapproval
+ * @author     Nicolas Jourdain <nicolas.jourdain@navitas.com>
+ * @copyright  2018 Nicolas Jourdain <nicolas.jourdain@navitas.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class txt_logging_events_testcase extends advanced_testcase {

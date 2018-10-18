@@ -15,10 +15,11 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Capabilities gradeexport plugin.
+ * Grader Report PDF for Approval.
  *
  * @package    gradeexport_ncmgradeapproval
- * @copyright  2018 Nicolas Jourdain (Navitas)
+ * @author     Nicolas Jourdain <nicolas.jourdain@navitas.com>
+ * @copyright  2018 Nicolas Jourdain <nicolas.jourdain@navitas.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

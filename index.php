@@ -66,7 +66,7 @@ if (($groupmode == SEPARATEGROUPS) &&
 
 // Cannot export if the gradebook is not locked.
 $gradeitem = $DB->get_record('grade_items', array('courseid' => $course->id, 'itemtype' => 'course'));
-if ($gradeitem->locked == 0 || $gradeitem->locked == null || $gradeitem->locked > time() ) {
+if (1==2 && $gradeitem->locked == 0 || $gradeitem->locked == null || $gradeitem->locked > time() ) {
     echo $OUTPUT->notification(get_string('gradebooknoexport', 'gradeexport_ncmgradeapproval'), 'notifyproblem');
     echo $OUTPUT->footer();
     die;

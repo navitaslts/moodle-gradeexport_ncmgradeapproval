@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/navitaslts/moodle-gradeexport_ncmgradeapproval.svg?branch=master)](https://travis-ci.com/navitaslts/moodle-gradeexport_ncmgradeapproval)
+
 # Grader Export to PDF # 
 
 TODO Describe the plugin shortly here.

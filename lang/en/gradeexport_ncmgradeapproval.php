@@ -15,11 +15,12 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Strings for component 'ncmgradeapproval', language 'en', branch 'MOODLE_20_STABLE'
+ * Grader Report PDF for Approval.
  *
- * @package   ncmgradeapproval
- * @copyright 2018 onwards Nicolas Jourdain  {@link http://navitas.com}
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    gradeexport_ncmgradeapproval
+ * @author     Nicolas Jourdain <nicolas.jourdain@navitas.com>
+ * @copyright  2018 Nicolas Jourdain <nicolas.jourdain@navitas.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 $string['eventgradeexported'] = 'NCM Grade Report Approval exported';
