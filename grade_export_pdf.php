@@ -14,6 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+/**
+ * Grader Report PDF for Approval.
+ *
+ * @package    gradeexport_ncmgradeapproval
+ * @author     Nicolas Jourdain <nicolas.jourdain@navitas.com>
+ * @copyright  2018 Nicolas Jourdain <nicolas.jourdain@navitas.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+namespace gradeexport_ncmgradeapproval;
+
+defined('MOODLE_INTERNAL') || die;
+
 require_once($CFG->dirroot.'/grade/export/lib.php');
 
 class grade_export_pdf extends grade_export {
@@ -103,7 +116,6 @@ class grade_export_pdf extends grade_export {
 
         $mypdf->AddPage('L', 'A4');
 
-        //$mypdf->writeHTML($this->get_css(), true, false, true, false, '');
         $mypdf->writeHTML($this->get_html_header(), true, false, true, false, '');
         $mypdf->writeHTML($this->get_html_title($SITE->shortname, $this->course), true, false, true, false, '');
 

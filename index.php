@@ -14,6 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+/**
+ * Grader Report PDF for Approval.
+ *
+ * @package    gradeexport_ncmgradeapproval
+ * @author     Nicolas Jourdain <nicolas.jourdain@navitas.com>
+ * @copyright  2018 Nicolas Jourdain <nicolas.jourdain@navitas.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 require_once('../../../config.php');
 require_once($CFG->dirroot.'/grade/export/lib.php');
 require_once('grade_export_pdf.php');
@@ -66,7 +75,7 @@ if (($groupmode == SEPARATEGROUPS) &&
 
 // Cannot export if the gradebook is not locked.
 $gradeitem = $DB->get_record('grade_items', array('courseid' => $course->id, 'itemtype' => 'course'));
-if (1==2 && $gradeitem->locked == 0 || $gradeitem->locked == null || $gradeitem->locked > time() ) {
+if ($gradeitem->locked == 0 || $gradeitem->locked == null || $gradeitem->locked > time() ) {
     echo $OUTPUT->notification(get_string('gradebooknoexport', 'gradeexport_ncmgradeapproval'), 'notifyproblem');
     echo $OUTPUT->footer();
     die;
