@@ -23,7 +23,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace gradeexport_ncmgradeapproval;
+// namespace gradeexport_ncmgradeapproval;
 
 defined('MOODLE_INTERNAL') || die;
 
