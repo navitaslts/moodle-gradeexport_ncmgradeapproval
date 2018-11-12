@@ -445,9 +445,14 @@ class grade_export_pdf extends grade_export {
     }
 
     private function get_html_grade_summary () {
+
+        $grades = $this->finalgrades;
+
+        ksort($grades);
+
         $html = "<div style=\"text-align:right\" width='100%'>";
         $html .= "<span><b>Grade Distribution</b></span>";
-        foreach ($this->finalgrades as $grade => $count) {
+        foreach ($grades as $grade => $count) {
             $pourcentage = $count * 100 / $this->finalgradescounter;
             $html .= "<br/><span><b>{$grade}:</b>&nbsp;{$count} (".number_format($pourcentage, 1)."%)</span>";
         }
