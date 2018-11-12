@@ -121,7 +121,8 @@ class grade_export_pdf extends grade_export {
 
         // Grade Table.
         $gradetable = array(
-            'thead' => array('College ID', 'UNI ID', 'Student Name', 'Class'),
+            // 'thead' => array('College ID', 'UNI ID', 'Student Name', 'Class'),
+            'thead' => array('Username', 'Student Name', 'Class'),
             'tbody' => [],
         );
 
@@ -175,8 +176,12 @@ class grade_export_pdf extends grade_export {
                 }
             }
 
+            // echo "<pre>";
+            // var_dump($user);
+            // echo "</pre>";
             $myuser = array(
                 'studentid' => $user->id,
+                'username' => $user->username,
                 'studentname' => $user->firstname . ' ' . $user->lastname,
                 'class' => $groupname,
                 'uniid' => isset($userobj->profile[$this->uniidfieldname]) ? $userobj->profile[$this->uniidfieldname] : '' ,
@@ -353,6 +358,10 @@ class grade_export_pdf extends grade_export {
     private function get_html_grade_table_header($theader, $listgrades) {
         $html = "<thead><tr bgcolor=\"#ddeaff\">";
         $i = 0;
+
+        // echo "<pre>";
+        // var_dump($theader);
+        // echo "</pre>";
         // Add Student ID, UNI ID, Student Name.
         foreach ($theader as $column) {
             $html .= "<th><b>{$column}</b></th>";
@@ -391,8 +400,9 @@ class grade_export_pdf extends grade_export {
             ($i % 2 == 0) ? $color = $color2 : $color = $color1;
 
             $html .= "<tr bgcolor=\"$color\">"
-                ."<td>{$data['user']['studentid']}</td>"
-                ."<td>{$data['user']['uniid']}</td>"
+                // ."<td>{$data['user']['studentid']}</td>"
+                ."<td>{$data['user']['username']}</td>"
+                // ."<td>{$data['user']['uniid']}</td>"
                 ."<td>{$data['user']['studentname']}</td>"
                 ."<td>{$data['user']['class']}</td>";
             // Grade data.
@@ -446,11 +456,16 @@ class grade_export_pdf extends grade_export {
     }
 
     private function get_html_signature() {
+
+        global $USER;
+
+        $printbyname = rtrim($USER->firstname . " " . $USER->lastname);
+
         $html = "<table width='100%' border='1px'>";
         $html .= "<tr>";
-        $html .= "<td width='35%'>Printed by: _______________</td>";
+        $html .= "<td width='35%'>Printed by: ".$printbyname."</td>";
         $html .= "<td width='35%'>Signature: _______________</td>";
-        $html .= "<td width='30%'>Date: ".date('d/m/Y')."</td>";
+        $html .= "<td width='30%'>Date: ".date('d M  Y')."</td>";
         $html .= "</tr>";
         $html .= "</table>";
         return $html;
