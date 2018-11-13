@@ -460,7 +460,7 @@ class grade_export_pdf extends grade_export {
             } else {
                 $signa = (isset($splita[1])) ? $splita[1] : "";
                 $signb = (isset($splitb[1])) ? $splitb[1] : "";
-                return strcmp($signa, $signb);
+                return strcmp($signa, $signb) * -1;
             }
         });
 
