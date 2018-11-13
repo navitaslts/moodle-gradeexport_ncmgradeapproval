@@ -464,8 +464,8 @@ class grade_export_pdf extends grade_export {
                 $this->debug[] = "DIFFERENT LETTER";
                 return strcmp($lettera, $letterb);
             } else {
-                $signa = (isset($splita[1])) ? $splita[1] : "";
-                $signb = (isset($splitb[1])) ? $splitb[1] : "";
+                $signa = (isset($splita[1])) ? $splita[1] : ",";
+                $signb = (isset($splitb[1])) ? $splitb[1] : ",";
                 $this->debug[] = $signa . " ... " . $signb;
                 $this->debug[] = strcmp($signa, $signb) * -1;
                 return strcmp($signa, $signb) * -1;
