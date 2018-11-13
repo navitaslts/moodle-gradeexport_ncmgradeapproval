@@ -453,28 +453,17 @@ class grade_export_pdf extends grade_export {
         uksort($grades, function($a, $b) {
             $splita = str_split($a);
             $splitb = str_split($b);
-            $this->debug[] = " ------------- ";
-            $this->debug[] = $a . " ... " . $b;
 
             $lettera = $splita[0];
             $letterb = $splitb[0];
-            $this->debug[] = $lettera . " ... " . $letterb;
-
             if ($lettera !== $letterb) {
-                $this->debug[] = "DIFFERENT LETTER";
                 return strcmp($lettera, $letterb);
             } else {
                 $signa = (isset($splita[1])) ? $splita[1] : ",";
                 $signb = (isset($splitb[1])) ? $splitb[1] : ",";
-                $this->debug[] = $signa . " ... " . $signb;
-                $this->debug[] = strcmp($signa, $signb);
                 return strcmp($signa, $signb);
             }
         });
-
-        // echo "<pre>";
-        // var_dump($this->debug);
-        // echo "</pre>";
 
         $html = "<div style=\"text-align:right\" width='100%'>";
         $html .= "<span><b>Grade Distribution</b></span>";
