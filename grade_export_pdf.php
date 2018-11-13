@@ -448,7 +448,21 @@ class grade_export_pdf extends grade_export {
 
         $grades = $this->finalgrades;
 
-        ksort($grades);
+        uksort($grades, function($a, $b) {
+            $splita = str_split($a);
+            $splitb = str_split($b);
+
+            $lettera = $splita[0];
+            $letterb = $splitb[0];
+
+            if ($lettera !== $letterb) {
+                return strcmp($lettera, $lettera) * -1;
+            } else {
+                $signa = (isset($splita[1])) ? $splita[1] : "";
+                $signb = (isset($splitb[1])) ? $splitb[1] : "";
+                return strcmp($signa, $signb);
+            }
+        });
 
         $html = "<div style=\"text-align:right\" width='100%'>";
         $html .= "<span><b>Grade Distribution</b></span>";
