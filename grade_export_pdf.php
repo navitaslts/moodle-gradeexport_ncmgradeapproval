@@ -266,6 +266,48 @@ class grade_export_pdf extends grade_export {
                 'grades' => $mygrades
             );
         }
+
+        // Remove Student who doesn't have a grade in each Grade Item.
+        foreach ($gradetable['tbody'] as $key => $usergrades) {
+            foreach ( $usergrades as $grade ) {
+                if (empty($grade['finalgrade']) || strcasecmp($grade['finalgrade'], 'NULL' == 0)) {
+                    unset($gradetable['tbody'][$key]);
+                    $studentcount--;
+                    break;
+                }
+            }
+        }
+
+        $coursegrade = null;
+        // Identify the Course Grade Item
+        foreach ($listgrades as $listgrade) {
+            if ($listgrade['itemtype'] === 'course') {
+                $coursegrade = $listgrade;
+                break;
+            }
+        }
+
+
+
+        // Sort grades Top grade at the top (DESC)
+        usort ($gradetable['tbody'], function ($a, $b) use ($coursegrade) {
+            // Identify the Course Grade Item score for $a
+            $acoursegrade = null;
+            foreach ($a['grades'] as $grade) {
+                if ($grade['itemid'] === $coursegrade['itemid']) {
+                    $acoursegrade = $grade;
+                }
+            }
+            // Identify the Course Grade Item score for $b
+            $bcoursegrade = null;
+            foreach ($b['grades'] as $grade) {
+                if ($grade['itemid'] === $coursegrade['itemid']) {
+                    $bcoursegrade = $grade;
+                }
+            }
+            return (strcmp($acoursegrade['finalgrade'], $bcoursegrade['finalgrade']) * -1);
+        });
+
         // Reorder list of grades.
         // The Grade for the course must be in last position.
         // Itemtype / Itemid.
@@ -359,7 +401,7 @@ class grade_export_pdf extends grade_export {
 
     private function get_html_grade_table_header($theader, $listgrades) {
         $html = "<thead><tr bgcolor=\"#ddeaff\">";
-        $i = 0;
+        // $i = 0;
 
         // echo "<pre>";
         // var_dump($theader);
@@ -367,19 +409,22 @@ class grade_export_pdf extends grade_export {
         // Add Student ID, UNI ID, Student Name.
         foreach ($theader as $column) {
             $html .= "<th><b>{$column}</b></th>";
-            $i++;
+            // $i++;
         }
         // Add columns, 1 column per grade item.
         foreach ($listgrades as $listgrade) {
-
-            $text = $listgrade['itemname'];
-            if ($listgrade['itemtype'] != 'course') {
-                $text = $listgrade['itemname']
-                    . "<div style=\"font-size: small;\">Max:".floatval($listgrade['grademax'])."<br/>"
-                    . "Factor:".floatval($listgrade['multfactor'])."</div>";
+            if ($listgrade['itemtype'] === 'course') {
+                continue;
+            } else {
+                // $text = $listgrade['itemname'];
+                // if ($listgrade['itemtype'] != 'course') {
+                    $text = $listgrade['itemname']
+                        . "<div style=\"font-size: small;\">Max:".floatval($listgrade['grademax'])."<br/>"
+                        . "Factor:".floatval($listgrade['multfactor'])."</div>";
+                
+                $html .= "<th><b>{$text}</b></th>";
             }
-            $html .= "<th><b>{$text}</b></th>";
-            $i++;
+            // $i++;
         }
         // Grade letter column.
         $html .= "<th><b>Grd</b></th>";
@@ -410,8 +455,9 @@ class grade_export_pdf extends grade_export {
             // Grade data.
             foreach ($listgrades as $listgrade) {
                 $itemid = $listgrade['itemid'];
-                $html .= "<td>{$data['grades'][$itemid]['score'][GRADE_DISPLAY_TYPE_REAL]}</td>";
-
+                if ($listgrade['itemtype'] !== 'course') {
+                    $html .= "<td>{$data['grades'][$itemid]['score'][GRADE_DISPLAY_TYPE_REAL]}</td>";
+                }
                 if ($listgrade['itemtype'] == 'course') {
                     $html .= "<td>{$data['grades'][$itemid]['score'][GRADE_DISPLAY_TYPE_LETTER]}</td>";
                     $html .= "<td>{$data['grades'][$itemid]['score'][GRADE_DISPLAY_TYPE_PERCENTAGE]}</td>";
@@ -437,9 +483,11 @@ class grade_export_pdf extends grade_export {
             }
             $countertotal++;
         }
-
-        $pourcentage = $counterpass * 100 / $countertotal;
-
+        if ($countertotal == 0) {
+            $pourcentage = 0;
+        } else {
+            $pourcentage = $counterpass * 100 / $countertotal;
+        }
         $html = "<div style=\"text-align:right\" width='100%'>";
         $html .= "Passrate = ".number_format($pourcentage, 1)."%";
         $html .= "</div>";
