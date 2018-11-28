@@ -269,8 +269,8 @@ class grade_export_pdf extends grade_export {
 
         // Remove Student who doesn't have a grade in each Grade Item.
         foreach ($gradetable['tbody'] as $key => $usergrades) {
-            foreach ( $usergrades as $grade ) {
-                if (empty($grade['finalgrade']) || strcasecmp($grade['finalgrade'], 'NULL' == 0)) {
+            foreach ( $usergrades['grades'] as $grade ) {
+                if (empty($grade['finalgrade'])) {
                     unset($gradetable['tbody'][$key]);
                     $studentcount--;
                     break;
@@ -286,8 +286,6 @@ class grade_export_pdf extends grade_export {
                 break;
             }
         }
-
-
 
         // Sort grades Top grade at the top (DESC)
         usort ($gradetable['tbody'], function ($a, $b) use ($coursegrade) {
