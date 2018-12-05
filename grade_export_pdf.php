@@ -23,11 +23,10 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-// namespace gradeexport_ncmgradeapproval;
-
 defined('MOODLE_INTERNAL') || die;
 
 require_once($CFG->dirroot.'/grade/export/lib.php');
+require_once($CFG->dirroot.'/lib/gradelib.php');
 
 class grade_export_pdf extends grade_export {
 
@@ -38,6 +37,7 @@ class grade_export_pdf extends grade_export {
     private $finalgradescounter = 0;
     private $passrates = array();
     private $uniidfieldname = 'ncmuniid';
+    private $lettersdefinition = array();
 
     private $debug = array();
 
@@ -80,6 +80,7 @@ class grade_export_pdf extends grade_export {
         $profilefields = grade_helper::get_user_profile_fields($this->course->id, $this->usercustomfields);
 
         // Calculate file name.
+        $context = context_course::instance($this->course->id);
         $shortname = format_string($this->course->shortname, true, array('context' => context_course::instance($this->course->id)));
         $downloadfilename = clean_filename("$shortname $strgrades.pdf");
 
@@ -123,7 +124,6 @@ class grade_export_pdf extends grade_export {
 
         // Grade Table.
         $gradetable = array(
-            // 'thead' => array('College ID', 'UNI ID', 'Student Name', 'Class'),
             'thead' => array('Username', 'Student Name', 'Class'),
             'tbody' => [],
         );
@@ -178,9 +178,6 @@ class grade_export_pdf extends grade_export {
                 }
             }
 
-            // echo "<pre>";
-            // var_dump($user);
-            // echo "</pre>";
             $myuser = array(
                 'studentid' => $user->id,
                 'username' => $user->username,
@@ -269,7 +266,7 @@ class grade_export_pdf extends grade_export {
 
         // Remove Student who doesn't have a grade in each Grade Item.
         foreach ($gradetable['tbody'] as $key => $usergrades) {
-            foreach ( $usergrades['grades'] as $grade ) {
+            foreach ($usergrades['grades'] as $grade) {
                 if (empty($grade['finalgrade'])) {
                     unset($gradetable['tbody'][$key]);
                     $studentcount--;
@@ -279,7 +276,7 @@ class grade_export_pdf extends grade_export {
         }
 
         $coursegrade = null;
-        // Identify the Course Grade Item
+        // Identify the Course Grade Item.
         foreach ($listgrades as $listgrade) {
             if ($listgrade['itemtype'] === 'course') {
                 $coursegrade = $listgrade;
@@ -287,16 +284,16 @@ class grade_export_pdf extends grade_export {
             }
         }
 
-        // Sort grades Top grade at the top (DESC)
+        // Sort grades Top grade at the top (DESC).
         usort ($gradetable['tbody'], function ($a, $b) use ($coursegrade) {
-            // Identify the Course Grade Item score for $a
+            // Identify the Course Grade Item score for $a.
             $acoursegrade = null;
             foreach ($a['grades'] as $grade) {
                 if ($grade['itemid'] === $coursegrade['itemid']) {
                     $acoursegrade = $grade;
                 }
             }
-            // Identify the Course Grade Item score for $b
+            // Identify the Course Grade Item score for $b.
             $bcoursegrade = null;
             foreach ($b['grades'] as $grade) {
                 if ($grade['itemid'] === $coursegrade['itemid']) {
@@ -341,6 +338,11 @@ class grade_export_pdf extends grade_export {
         $passrate = $this->get_html_passrate();
         $mypdf->writeHTML($passrate, true, false, true, false, '');
 
+        // Get Letters definition.
+        $this->get_letters_definition($context);
+
+        $mypdf->lastPage();
+        $mypdf->AddPage();
         // Grade distribution.
         $gradedistribution = $this->get_html_grade_summary();
         $mypdf->writeHTML($gradedistribution, true, false, true, false, '');
@@ -361,6 +363,22 @@ class grade_export_pdf extends grade_export {
             @header("Content-type: text/xml; charset=UTF-8");
             send_temp_file($tempfilename, $downloadfilename, false);
         }
+    }
+
+    private function get_letters_definition($context) {
+        $letters = grade_get_letters($context);
+
+        $lettersdata = array();
+        $max = 100;
+        foreach ($letters as $boundary => $letter) {
+            $line = array();
+            $line['max'] = format_float($max, 2).' %';
+            $line['min'] = format_float($boundary, 2).' %';
+            $line['letter'] = format_string($letter);
+            $lettersdata[$letter] = $line;
+            $max = $boundary - 0.01;
+        }
+        $this->lettersdefinition = $lettersdata;
     }
 
     private function get_html_header() {
@@ -399,30 +417,20 @@ class grade_export_pdf extends grade_export {
 
     private function get_html_grade_table_header($theader, $listgrades) {
         $html = "<thead><tr bgcolor=\"#ddeaff\">";
-        // $i = 0;
-
-        // echo "<pre>";
-        // var_dump($theader);
-        // echo "</pre>";
         // Add Student ID, UNI ID, Student Name.
         foreach ($theader as $column) {
             $html .= "<th><b>{$column}</b></th>";
-            // $i++;
         }
         // Add columns, 1 column per grade item.
         foreach ($listgrades as $listgrade) {
             if ($listgrade['itemtype'] === 'course') {
                 continue;
             } else {
-                // $text = $listgrade['itemname'];
-                // if ($listgrade['itemtype'] != 'course') {
                     $text = $listgrade['itemname']
                         . "<div style=\"font-size: small;\">Max:".floatval($listgrade['grademax'])."<br/>"
                         . "Factor:".floatval($listgrade['multfactor'])."</div>";
-                
                 $html .= "<th><b>{$text}</b></th>";
             }
-            // $i++;
         }
         // Grade letter column.
         $html .= "<th><b>Grd</b></th>";
@@ -445,9 +453,7 @@ class grade_export_pdf extends grade_export {
             ($i % 2 == 0) ? $color = $color2 : $color = $color1;
 
             $html .= "<tr bgcolor=\"$color\">"
-                // ."<td>{$data['user']['studentid']}</td>"
                 ."<td>{$data['user']['username']}</td>"
-                // ."<td>{$data['user']['uniid']}</td>"
                 ."<td>{$data['user']['studentname']}</td>"
                 ."<td>{$data['user']['class']}</td>";
             // Grade data.
@@ -510,14 +516,45 @@ class grade_export_pdf extends grade_export {
                 return strcmp($signa, $signb);
             }
         });
-
-        $html = "<div style=\"text-align:right\" width='100%'>";
-        $html .= "<span><b>Grade Distribution</b></span>";
-        foreach ($grades as $grade => $count) {
-            $pourcentage = $count * 100 / $this->finalgradescounter;
-            $html .= "<br/><span><b>{$grade}:</b>&nbsp;{$count} (".number_format($pourcentage, 1)."%)</span>";
+        $html = "<div><b>Grade Distribution</b></div>";
+        $html .= "<div style=\"float:right\" width='100%'><table border=\"0\" cellpadding=\"2\" cellspacing=\"0\">";
+        $mycols = array(
+            'Grade',
+            'Lowest',
+            'Highest',
+            'Total',
+            '%',
+        );
+        $html .= "<tr bgcolor=\"#ddeaff\">";
+        foreach ($mycols as $mycol) {
+            $html .= "<th width=\"50\">{$mycol}</th>";
         }
-        $html .= "</div>";
+        $html .= "</tr>";
+
+        $i = 0;
+        foreach ($grades as $grade => $count) {
+
+            $i++;
+            $color = "#F0F0F0";
+            $color2 = "#FFFFFF";
+            ($i % 2 == 0) ? $color = $color2 : $color = $color;
+
+            $pourcentage = $count * 100 / $this->finalgradescounter;
+            $letterdefinition = $this->lettersdefinition[$grade];
+            $html .= "<tr bgcolor=\"{$color}\">";
+            // Grade.
+            $html .= "<td><b>{$grade}</b></td>";
+            // Lowest.
+            $html .= "<td>{$letterdefinition['min']}</td>";
+            // Highest.
+            $html .= "<td>{$letterdefinition['max']}</td>";
+            // Total.
+            $html .= "<td>{$count}</td>";
+            // Pourcentage.
+            $html .= "<td>".number_format($pourcentage, 1)."</td>";
+            $html .= "</tr>";
+        }
+        $html .= "</table></div>";
         return $html;
     }
 
