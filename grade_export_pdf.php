@@ -265,15 +265,16 @@ class grade_export_pdf extends grade_export {
         }
 
         // Remove Student who doesn't have a grade in each Grade Item.
-        foreach ($gradetable['tbody'] as $key => $usergrades) {
-            foreach ($usergrades['grades'] as $grade) {
-                if (empty($grade['finalgrade'])) {
-                    unset($gradetable['tbody'][$key]);
-                    $studentcount--;
-                    break;
-                }
-            }
-        }
+        // Disable for SIBT
+        // foreach ($gradetable['tbody'] as $key => $usergrades) {
+        //     foreach ($usergrades['grades'] as $grade) {
+        //         if (empty($grade['finalgrade'])) {
+        //             unset($gradetable['tbody'][$key]);
+        //             $studentcount--;
+        //             break;
+        //         }
+        //     }
+        // }
 
         $coursegrade = null;
         // Identify the Course Grade Item.
